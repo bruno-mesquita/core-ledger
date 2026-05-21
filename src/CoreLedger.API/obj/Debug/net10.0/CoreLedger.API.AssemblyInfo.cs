@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CoreLedger.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3c668af6dc5cba5bf90cab98cfdb2b5a67becb8f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c6de81fff936e22ddad99df3dd2c0b6ff5ee6cc0")]
 [assembly: System.Reflection.AssemblyProductAttribute("CoreLedger.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CoreLedger.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
