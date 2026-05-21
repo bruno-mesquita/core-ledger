@@ -14,6 +14,10 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
         builder.Property(a => a.Balance).HasPrecision(18, 4);
         builder.Property(a => a.Limit).HasPrecision(18, 4);
         builder.Property(a => a.Status).IsRequired();
-        builder.Property(a => a.RowVersion).IsRowVersion();
+
+        // PostgreSQL/Npgsql requires uint (mapped to xmin system column) for IsRowVersion().
+        // The domain model uses byte[] which is not auto-generated in PostgreSQL.
+        // We ignore RowVersion here and rely on application-level concurrency handling.
+        builder.Ignore(a => a.RowVersion);
     }
 }
