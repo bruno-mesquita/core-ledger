@@ -2,101 +2,101 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project
+
+**CoreLedger** — modular banking platform (Phase 1 monolith). Replaced aprendendo-api.
+
 ## Commands
 
 ```bash
+# Start PostgreSQL (required for API)
+docker compose up postgres -d
+
 # Run dev server
-dotnet run --project src/aprendendo-api.API/aprendendo-api.API.csproj
+dotnet run --project src/CoreLedger.API/CoreLedger.API.csproj
 
 # Build
 dotnet build
 
-# Run tests
+# Unit tests (no Docker needed)
+dotnet test tests/CoreLedger.UnitTests/
+
+# Integration tests (requires Docker)
+dotnet test tests/CoreLedger.IntegrationTests/
+
+# All tests
 dotnet test
 
-# Run single test
+# Single test
 dotnet test --filter "FullyQualifiedName~TestName"
 
 # EF Core migrations
-dotnet ef migrations add <Name> --project src/aprendendo-api.Infrastructure --startup-project src/aprendendo-api.API
-dotnet ef database update --project src/aprendendo-api.Infrastructure --startup-project src/aprendendo-api.API
+dotnet ef migrations add <Name> \
+  --project src/CoreLedger.Infrastructure \
+  --startup-project src/CoreLedger.API
 
-# Docker
-docker build -t aprendendo-api .
-docker run -p 8080:8080 aprendendo-api
+dotnet ef database update \
+  --project src/CoreLedger.Infrastructure \
+  --startup-project src/CoreLedger.API
+
+# Docker (full stack)
+docker compose up --build
+docker compose down
 ```
 
 ## Architecture
 
-Clean Architecture solution (`aprendendo-api.slnx`) targeting .NET 10 with **Minimal APIs** (no MVC controllers).
+Clean Architecture + DDD + CQRS (MediatR) on .NET 10 with Minimal APIs and PostgreSQL.
 
-**Current state:** User CRUD API with JWT auth, role-based authorization (User/Admin), protected admin route, and full test suite (unit + integration).
-
-**Dependency direction:** `Domain` ← `Application` ← `Infrastructure` ← `API`. Never reversed.
+**Dependency direction:** `SharedKernel` ← `Domain` ← `Application` ← `Infrastructure` ← `API`
 
 ```
 src/
-  aprendendo-api.Domain/          # Entities, interfaces, enums — zero external deps
-  aprendendo-api.Application/     # Services, DTOs, application interfaces — depends on Domain
-  aprendendo-api.Infrastructure/  # EF Core, JWT, BCrypt — depends on Domain + Application
-  aprendendo-api.API/             # Endpoints, Program.cs — depends on Application + Infrastructure
+  CoreLedger.SharedKernel/   # Entity, AggregateRoot, Result<T>, IDomainEvent — zero deps
+  CoreLedger.Domain/         # Aggregates: User, Account, Transaction, LedgerEntry + repository interfaces
+  CoreLedger.Application/    # Commands/Queries/Handlers (MediatR), DTOs, interfaces (IPasswordHasher, ITokenService, IUnitOfWork)
+  CoreLedger.Infrastructure/ # EF Core + Npgsql, repositories, PasswordHasher, TokenService
+  CoreLedger.API/            # Minimal API endpoints, Program.cs, Serilog
+
 tests/
-  aprendendo-api.Tests/           # xUnit unit + integration tests
+  CoreLedger.UnitTests/       # Domain + handler tests (NSubstitute, no DB)
+  CoreLedger.IntegrationTests/ # Full endpoint tests (Testcontainers PostgreSQL)
 ```
 
-### Key design choices
+## Key Design Decisions
 
-- Typed results pattern: `Results<Ok<T>, NotFound>` for endpoint return types
-- Records for DTOs
-- Primary constructor injection throughout
-- SQLite + EF Core 10 (AOT disabled — EF Core is not AOT-compatible)
-- JWT Bearer auth via `AddAuthentication().AddJwtBearer()`
-- BCrypt for password hashing (`BCrypt.Net-Next`)
+- **MediatR 14 CQRS**: every use case is a Command or Query with a Handler. No service classes.
+- **Result<T>**: handlers return `Result<T>`. Never throw business exceptions.
+- **ValidationBehavior**: FluentValidation runs as MediatR pipeline. Invalid commands → `ValidationException` → 400.
+- **MediatR 14 open behaviors**: registered with `cfg.AddOpenBehavior(typeof(...<,>))`.
+- **Idempotency**: transfers check `IdempotencyKey` unique index before executing.
+- **Refresh token rotation**: old token revoked, new one issued on each refresh.
+- **RowVersion removed**: `IsRowVersion()` is SQL Server-only; removed from Account config for PostgreSQL.
+- **Primary constructor injection** throughout.
 
-### Default credentials (dev/test)
+## Domain Aggregates
 
-- Admin: `admin@example.com` / `Admin@123`
-- Seeded via `OnModelCreating` `HasData` (hardcoded BCrypt hash — do not regenerate)
+- **User**: owns RefreshTokens, Role (Customer/Admin)
+- **Account**: Debit/Credit/Close returning Result, Status enum
+- **Transaction**: Debit/Credit, TransactionKind (TED/Deposit/Withdrawal)
+- **LedgerEntry**: double-entry bookkeeping per transaction
 
-### Integration test DB
+## Default Credentials (dev/test)
 
-`CustomWebApplicationFactory` replaces the SQLite connection with `DataSource=:memory:` (same SQLite provider, no two-provider conflict). `EnsureCreated()` in `CreateHost` applies `HasData` seed. Each factory instance uses its own in-memory SQLite connection.
+- Admin: `admin@coreledger.com` / `Admin@123`
+- BCrypt hash (workFactor 11): `$2a$11$UtSPv8lsxLhuuaxY3Ly3puAAwLkEFVTARmWyDDGzSl/nqa5SSDyOy`
+- Seeded in `UserConfiguration.HasData`
 
----
+## Integration Test Pattern
 
-## SOLID Principles (enforced throughout)
+`IntegrationTestBase` implements `IAsyncLifetime`. Each test class gets its own `PostgreSqlContainer` (Testcontainers). `CustomWebApplicationFactory` replaces DbContext with the container connection. `db.Database.EnsureCreated()` applies schema.
 
-All code in this project **must** follow SOLID. These are non-negotiable:
+## SOLID Principles (enforced)
 
-### Single Responsibility (SRP)
-Each class has exactly one reason to change:
-- `AuthService` — auth flow only (register/login)
-- `UserService` — user CRUD only
-- `PasswordHasher` — hashing only
-- `TokenService` — JWT generation only
-- `UserRepository` — data access only
+- **SRP**: each Handler has one reason to change. Repositories do data access only.
+- **OCP**: new use case → new Command + Handler. Never modify existing handlers.
+- **LSP**: all repository implementations fully substitutable (NSubstitute proves this in unit tests).
+- **ISP**: `IPasswordHasher`, `ITokenService`, `IUnitOfWork` are single-purpose.
+- **DIP**: Application depends on interfaces only. Infrastructure implements them. Wired in DI only.
 
-### Open/Closed (OCP)
-New features → new classes. Do not modify working service/endpoint code to add unrelated features. Domain entities expose behavior methods (`UpdateEmail`, `UpdateRole`) instead of public setters.
-
-### Liskov Substitution (LSP)
-All interface implementations must be fully substitutable. The integration test factory swaps `UserRepository` for an in-memory-backed version — callers must be unaffected. Never implement only part of an interface.
-
-### Interface Segregation (ISP)
-Keep interfaces narrow and single-purpose:
-- `IPasswordHasher` — only hash/verify
-- `ITokenService` — only generate token
-- `IAuthService` — only auth operations
-- `IUserService` — only CRUD operations
-- `IUserRepository` — only data access
-
-Do NOT create fat interfaces.
-
-### Dependency Inversion (DIP)
-All layers depend on **abstractions**, never on concrete classes:
-- Application depends on `IUserRepository`, `IPasswordHasher`, `ITokenService` (all interfaces)
-- Infrastructure implements those interfaces
-- Concrete classes are only wired in `DependencyInjection.cs` and `Program.cs`
-- Domain has zero dependencies on other layers
-
-**Rule:** If you're writing `new ConcreteService()` outside of DI registration, something is wrong.
+**Rule:** `new ConcreteService()` outside DI registration is forbidden.
