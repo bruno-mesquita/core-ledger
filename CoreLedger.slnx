@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CoreLedger.API/CoreLedger.API.csproj" />
+    <Project Path="src/CoreLedger.Application/CoreLedger.Application.csproj" />
+    <Project Path="src/CoreLedger.Domain/CoreLedger.Domain.csproj" />
+    <Project Path="src/CoreLedger.Infrastructure/CoreLedger.Infrastructure.csproj" />
+    <Project Path="src/CoreLedger.SharedKernel/CoreLedger.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CoreLedger.IntegrationTests/CoreLedger.IntegrationTests.csproj" />
+    <Project Path="tests/CoreLedger.UnitTests/CoreLedger.UnitTests.csproj" />
+  </Folder>
+</Solution>

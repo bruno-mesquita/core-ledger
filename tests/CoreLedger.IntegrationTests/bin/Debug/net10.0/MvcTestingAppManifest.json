@@ -1,0 +1,7 @@
+{
+  "CoreLedger.API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\Users\\bruno\\source\\repos\\aprendendo-api\\src\\CoreLedger.API",
+  "CoreLedger.Application, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\Users\\bruno\\source\\repos\\aprendendo-api\\src\\CoreLedger.Application",
+  "CoreLedger.Domain, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\Users\\bruno\\source\\repos\\aprendendo-api\\src\\CoreLedger.Domain",
+  "CoreLedger.Infrastructure, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\Users\\bruno\\source\\repos\\aprendendo-api\\src\\CoreLedger.Infrastructure",
+  "CoreLedger.SharedKernel, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\Users\\bruno\\source\\repos\\aprendendo-api\\src\\CoreLedger.SharedKernel"
+}
