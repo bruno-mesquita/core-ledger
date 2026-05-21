@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet add *)",
+      "Bash(dotnet tool *)",
+      "Bash(dotnet ef *)",
+      "Bash(dotnet build *)",
+      "Bash(dotnet new *)",
+      "Bash(dotnet sln *)",
+      "Bash(xargs grep *)",
+      "Read(//tmp/**)",
+      "Bash(cat)",
+      "Bash(dotnet run *)",
+      "Bash(rtk dotnet *)",
+      "Bash(dotnet test *)",
+      "Bash(dotnet --version)",
+      "Bash(git init *)",
+      "Bash(rtk git *)",
+      "Bash(echo \".vs/\")",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "Pkd7smJZHt4=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\bruno\\source\\repos\\aprendendo-api\\src\\aprendendo-api.Application\\aprendendo-api.Application.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\bruno\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\10.0.8\\microsoft.extensions.dependencyinjection.abstractions.10.0.8.nupkg.sha512"
+  ],
+  "logs": []
+}
