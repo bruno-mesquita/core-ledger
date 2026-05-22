@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: #0d0d0f;
+  --color-surface: #141417;
+  --color-surface-raised: #1c1c21;
+  --color-border: #2a2a33;
+  --color-foreground: #f0f0f3;
+  --color-muted: #7a7a8c;
+  --color-accent: #4f8ef7;
+  --color-accent-hover: #3a7af0;
+  --color-destructive: #ef4444;
+
+  --font-display: var(--font-dm-serif);
+  --font-sans: var(--font-dm-sans);
+
+  --color-primary: var(--color-accent);
+  --color-primary-foreground: #ffffff;
+  --color-secondary: var(--color-surface-raised);
+  --color-secondary-foreground: var(--color-foreground);
+  --color-card: var(--color-surface);
+  --color-card-foreground: var(--color-foreground);
+  --color-input: var(--color-surface-raised);
+  --color-ring: var(--color-accent);
+  --color-muted-foreground: var(--color-muted);
+  --radius: 0.5rem;
+  --color-border: #2a2a33;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-fade-up-delay-1 {
+  animation-delay: 0.1s;
+}
+.animate-fade-up-delay-2 {
+  animation-delay: 0.2s;
+}
+.animate-fade-up-delay-3 {
+  animation-delay: 0.35s;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans), sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  border-color: var(--color-border);
+}
