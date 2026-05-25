@@ -1,0 +1,106 @@
+# =============================================================================
+# .github/workflows/frontend.yml
+#
+# CI pipeline para o frontend Next.js (src/frontend/).
+#
+# Um job com três etapas em sequência:
+#   1. pnpm install  → instala dependências
+#   2. next lint     → verifica estilo de código
+#   3. vitest run    → roda testes de componente
+# =============================================================================
+
+name: Frontend CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # DEFAULTS: working-directory
+    #
+    # Todo step `run:` deste job executa dentro de src/frontend/.
+    # Evita repetir `cd src/frontend &&` em cada comando.
+    # ─────────────────────────────────────────────────────────────────────────
+    defaults:
+      run:
+        working-directory: src/frontend
+
+    steps:
+      # Clona o repositório na máquina limpa.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # -----------------------------------------------------------------------
+      # pnpm NÃO vem pré-instalado nos runners do GitHub (só npm e yarn).
+      # Esta action instala o pnpm e o coloca no PATH.
+      #
+      # CRÍTICO: deve vir ANTES do setup-node, porque setup-node lê a versão
+      # do pnpm para configurar o cache.
+      # -----------------------------------------------------------------------
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 'latest'
+
+      # -----------------------------------------------------------------------
+      # Instala o Node.js 20 (LTS, compatível com Next.js).
+      #
+      # cache: 'pnpm' → o GitHub armazena em cache os pacotes baixados pelo
+      # pnpm. Se o pnpm-lock.yaml não mudou, a próxima execução não baixa
+      # nada da internet — economiza ~30–60 segundos por run.
+      #
+      # cache-dependency-path → caminho para o lockfile (relativo à raiz
+      # do repo, NÃO ao working-directory).
+      # -----------------------------------------------------------------------
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: src/frontend/pnpm-lock.yaml
+
+      # -----------------------------------------------------------------------
+      # pnpm install --frozen-lockfile
+      #
+      # --frozen-lockfile → falha se o pnpm-lock.yaml estiver desatualizado
+      # em relação ao package.json. Garante que o CI instala exatamente as
+      # mesmas versões testadas localmente.
+      #
+      # Sem essa flag, o pnpm atualizaria o lockfile silenciosamente no CI —
+      # você testaria versões diferentes sem perceber.
+      # -----------------------------------------------------------------------
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # -----------------------------------------------------------------------
+      # ESLint verifica estilo e possíveis bugs SEM executar o código.
+      # `next lint` usa a configuração em eslint.config.mjs e sabe quais
+      # arquivos analisar no projeto Next.js.
+      #
+      # Se o lint falhar (exit code != 0), o job para aqui.
+      # Não tem sentido rodar testes em código quebrado.
+      # -----------------------------------------------------------------------
+      - name: Run ESLint
+        run: pnpm lint
+
+      # -----------------------------------------------------------------------
+      # `pnpm test` executa `vitest run` (modo não-interativo).
+      #
+      # vitest run:
+      #   - Executa todos os arquivos de teste uma vez
+      #   - Sai com código 0 se tudo passou, não-zero se algo falhou
+      #   - NÃO fica em watch mode (o que travaria o runner para sempre)
+      #
+      # O Vitest lê vitest.config.ts para saber:
+      #   - environment: jsdom  (simular browser)
+      #   - setupFiles          (carregar matchers do jest-dom)
+      #   - resolve.alias       (entender imports com @/)
+      # -----------------------------------------------------------------------
+      - name: Run Vitest
+        run: pnpm test

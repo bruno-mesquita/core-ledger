@@ -1,0 +1,157 @@
+# =============================================================================
+# .github/workflows/backend.yml
+#
+# CI pipeline para o backend .NET.
+#
+# O QUE É CI? Continuous Integration = "a cada push, compile e teste
+# automaticamente". O objetivo é encontrar bugs antes que cheguem à main.
+# =============================================================================
+
+name: Backend CI
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ON: quando este workflow roda?
+# ─────────────────────────────────────────────────────────────────────────────
+on:
+  # A cada push direto na branch main
+  push:
+    branches: [main]
+
+  # Quando alguém abre ou atualiza um Pull Request apontando para main.
+  # Isso significa que o autor do PR sabe se quebrou algo ANTES do merge.
+  pull_request:
+    branches: [main]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# JOBS: qual trabalho acontece?
+#
+# Por padrão, jobs rodam EM PARALELO em máquinas separadas.
+# unit-tests e integration-tests vão rodar ao mesmo tempo.
+# ─────────────────────────────────────────────────────────────────────────────
+jobs:
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # JOB 1: unit-tests
+  #
+  # Testes unitários testam uma única peça de lógica em isolamento total.
+  # Sem banco de dados, sem rede. NSubstitute faz fakes de tudo.
+  # São rápidos (segundos).
+  # ───────────────────────────────────────────────────────────────────────────
+  unit-tests:
+
+    # Tipo de máquina ("runner") onde o job roda.
+    # ubuntu-latest = VM Linux gratuita do GitHub, destruída após o job.
+    # Cada execução começa do zero — sem estado do run anterior.
+    runs-on: ubuntu-latest
+
+    steps:
+      # -----------------------------------------------------------------------
+      # Por padrão o runner não tem nenhum arquivo.
+      # Este step clona o repositório na máquina para os steps seguintes
+      # enxergarem o código-fonte.
+      # @v4 fixa a versão da action para evitar quebras silenciosas no futuro.
+      # -----------------------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # -----------------------------------------------------------------------
+      # Instala o .NET 10 SDK na máquina.
+      # '10.x' significa "qualquer patch do .NET 10" (ex: 10.0.1, 10.0.2…).
+      # Isso evita atualizar o workflow a cada patch release.
+      # -----------------------------------------------------------------------
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      # -----------------------------------------------------------------------
+      # Baixa todos os pacotes NuGet listados nos arquivos .csproj.
+      # Separar do `dotnet test` deixa o erro mais óbvio:
+      # se falhar aqui = problema de dependência; se falhar depois = código.
+      # -----------------------------------------------------------------------
+      - name: Restore NuGet packages
+        run: dotnet restore CoreLedger.slnx
+
+      # -----------------------------------------------------------------------
+      # Compila (se necessário) e roda os testes unitários.
+      #
+      # --no-restore            → já fizemos o restore acima, não repetir
+      # --logger "trx;..."      → salva resultado em XML (formato TRX)
+      # --collect:"XPlat Code Coverage" → ativa o coverlet para cobertura
+      # --results-directory     → onde salvar os arquivos de resultado
+      # -----------------------------------------------------------------------
+      - name: Run unit tests
+        run: |
+          dotnet test tests/CoreLedger.UnitTests/ \
+            --no-restore \
+            --logger "trx;LogFileName=unit-test-results.trx" \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./TestResults/unit
+
+      # -----------------------------------------------------------------------
+      # Faz upload dos arquivos de resultado como "artifact" do workflow.
+      # Aparecem na aba Actions → run → seção "Artifacts" para download.
+      #
+      # if: always() → faz upload MESMO SE os testes falharem.
+      # Sem isso, o step seria pulado em caso de falha — exatamente quando
+      # você mais precisa ver o arquivo de resultado!
+      # -----------------------------------------------------------------------
+      - name: Upload unit test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-results
+          path: ./TestResults/unit
+          retention-days: 7
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # JOB 2: integration-tests
+  #
+  # Testes de integração exercitam a stack completa:
+  #   HTTP → Minimal API → MediatR → EF Core → PostgreSQL real
+  #
+  # Testcontainers.PostgreSql sobe um container postgres:16 automaticamente
+  # DENTRO do processo de teste. Não precisamos de nenhuma configuração
+  # extra de serviço aqui — basta ter Docker disponível no runner.
+  #
+  # ubuntu-latest já tem Docker instalado. Windows e macOS NÃO têm.
+  # Por isso usamos ubuntu-latest aqui obrigatoriamente.
+  # ───────────────────────────────────────────────────────────────────────────
+  integration-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Cada job começa em uma máquina limpa — checkout necessário novamente.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Restore NuGet packages
+        run: dotnet restore CoreLedger.slnx
+
+      # -----------------------------------------------------------------------
+      # Roda os testes de integração.
+      # O Testcontainers detecta o Docker socket em /var/run/docker.sock e
+      # sobe o postgres:16 automaticamente. Não precisa de configuração extra.
+      # Cada classe de teste que herda IntegrationTestBase ganha seu próprio
+      # container isolado via IAsyncLifetime.
+      # -----------------------------------------------------------------------
+      - name: Run integration tests
+        run: |
+          dotnet test tests/CoreLedger.IntegrationTests/ \
+            --no-restore \
+            --logger "trx;LogFileName=integration-test-results.trx" \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./TestResults/integration
+
+      - name: Upload integration test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-test-results
+          path: ./TestResults/integration
+          retention-days: 7
