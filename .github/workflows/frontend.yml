@@ -49,7 +49,7 @@ jobs:
           version: 'latest'
 
       # -----------------------------------------------------------------------
-      # Instala o Node.js 20 (LTS, compatível com Next.js).
+      # Instala o Node.js 24 (versão atual, compatível com pnpm 10 e Next.js).
       #
       # cache: 'pnpm' → o GitHub armazena em cache os pacotes baixados pelo
       # pnpm. Se o pnpm-lock.yaml não mudou, a próxima execução não baixa
@@ -58,10 +58,10 @@ jobs:
       # cache-dependency-path → caminho para o lockfile (relativo à raiz
       # do repo, NÃO ao working-directory).
       # -----------------------------------------------------------------------
-      - name: Setup Node.js 20
+      - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           cache: 'pnpm'
           cache-dependency-path: src/frontend/pnpm-lock.yaml
 
