@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint src/",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -40,12 +40,5 @@
     "tailwindcss": "4.3.0",
     "typescript": "5.9.3",
     "vitest": "4.1.7"
-  },
-  "pnpm": {
-    "overrides": {
-      "@babel/runtime": "7.27.6",
-      "tldts": "7.3.0",
-      "tldts-core": "7.3.0"
-    }
   }
 }

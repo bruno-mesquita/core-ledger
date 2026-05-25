@@ -80,8 +80,9 @@ jobs:
 
       # -----------------------------------------------------------------------
       # ESLint verifica estilo e possíveis bugs SEM executar o código.
-      # `next lint` usa a configuração em eslint.config.mjs e sabe quais
-      # arquivos analisar no projeto Next.js.
+      # Lê a configuração de eslint.config.mjs e analisa todos os arquivos
+      # em src/. Next.js 16 removeu o comando `next lint`, então usamos
+      # o ESLint diretamente.
       #
       # Se o lint falhar (exit code != 0), o job para aqui.
       # Não tem sentido rodar testes em código quebrado.
